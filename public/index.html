@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Layout Builder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0b0b0d;
+      --panel:    #111115;
+      --panel2:   #17171c;
+      --border:   #25252e;
+      --border2:  #2e2e3a;
+      --gold:     #e9c346;
+      --gold-dim: #b8962e;
+      --purple:   #6b46ff;
+      --text:     #e4e4ea;
+      --muted:    #5a5a6a;
+      --muted2:   #3a3a48;
+      --green:    #2ecc7a;
+      --amber:    #f5a623;
+      --red:      #f04a5a;
+      --radius:   10px;
+      --transition: 180ms ease;
+    }
+
+    html, body { height: 100%; }
+
+    body {
+      font-family: 'Syne', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── BACKGROUND GRID ───────────────────────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.35;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── LAYOUT ────────────────────────────────────────────────────────────── */
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    /* ── HEADER ────────────────────────────────────────────────────────────── */
+    header {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(11,11,13,0.98) 0%, transparent 100%);
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-mark {
+      width: 32px;
+      height: 32px;
+      background: var(--gold);
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    }
+
+    .logo-text {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--text);
+    }
+
+    .logo-text span {
+      color: var(--gold);
+    }
+
+    .header-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      border: 1px solid var(--border2);
+      padding: 4px 10px;
+      border-radius: 100px;
+    }
+
+    /* ── SECTION TITLES ────────────────────────────────────────────────────── */
+    .section-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 8px;
+    }
+
+    .section-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .section-sub {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.6;
+      font-weight: 400;
+    }
+
+    /* ── STEP INDICATOR ────────────────────────────────────────────────────── */
+    .steps {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin: 32px 0 24px;
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      transition: color var(--transition);
+    }
+
+    .step.active { color: var(--text); }
+    .step.done { color: var(--green); }
+
+    .step-num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 1.5px solid var(--muted2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      transition: all var(--transition);
+    }
+
+    .step.active .step-num {
+      border-color: var(--gold);
+      background: var(--gold);
+      color: #000;
+    }
+
+    .step.done .step-num {
+      border-color: var(--green);
+      background: var(--green);
+      color: #000;
+    }
+
+    .step-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border2);
+      margin: 0 12px;
+    }
+
+    /* ── UPLOAD ZONE ───────────────────────────────────────────────────────── */
+    #uploadZone {
+      border: 1.5px dashed var(--border2);
+      border-radius: var(--radius);
+      background: var(--panel);
+      padding: 60px 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+
+    #uploadZone::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center, rgba(233,195,70,0.04) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    #uploadZone:hover,
+    #uploadZone.drag-over {
+      border-color: var(--gold);
+      background: rgba(233,195,70,0.03);
+    }
+
+    .upload-icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 20px;
+      opacity: 0.5;
+    }
+
+    .upload-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .upload-sub {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .upload-sub strong {
+      color: var(--gold);
+      font-weight: 600;
+    }
+
+    #fileInput { display: none; }
+
+    /* ── BUTTONS ───────────────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      border: none;
+      transition: all var(--transition);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .btn-gold {
+      background: var(--gold);
+      color: #000;
+    }
+
+    .btn-gold:hover:not(:disabled) {
+      background: #f5d050;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(233,195,70,0.35);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border2);
+    }
+
+    .btn-ghost:hover:not(:disabled) {
+      color: var(--text);
+      border-color: var(--muted);
+    }
+
+    .btn-green {
+      background: var(--green);
+      color: #000;
+    }
+
+    .btn-green:hover:not(:disabled) {
+      background: #36e888;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(46,204,122,0.35);
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    /* ── PANEL ─────────────────────────────────────────────────────────────── */
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .panel-title {
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .count-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      background: var(--panel2);
+      border: 1px solid var(--border2);
+      padding: 2px 8px;
+      border-radius: 100px;
+      color: var(--muted);
+    }
+
+    /* ── TABLE ─────────────────────────────────────────────────────────────── */
+    .tbl-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    thead tr {
+      background: var(--panel2);
+    }
+
+    th {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 10px 16px;
+      text-align: left;
+      font-weight: 400;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      vertical-align: middle;
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    tbody tr:hover td { background: rgba(255,255,255,0.018); }
+
+    .cell-descr {
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: var(--gold);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .cell-text {
+      color: var(--muted);
+      font-size: 12px;
+      max-width: 320px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .cell-url {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--purple);
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .cell-id {
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* ── STATUS BADGE ──────────────────────────────────────────────────────── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      padding: 3px 9px;
+      border-radius: 100px;
+      font-weight: 500;
+    }
+
+    .badge-queued {
+      background: rgba(90,90,106,0.2);
+      border: 1px solid var(--muted2);
+      color: var(--muted);
+    }
+
+    .badge-processing {
+      background: rgba(245,166,35,0.12);
+      border: 1px solid rgba(245,166,35,0.3);
+      color: var(--amber);
+    }
+
+    .badge-done {
+      background: rgba(46,204,122,0.12);
+      border: 1px solid rgba(46,204,122,0.3);
+      color: var(--green);
+    }
+
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .badge-processing .badge-dot {
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* ── ACTION ROW ────────────────────────────────────────────────────────── */
+    .action-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+      background: var(--panel2);
+    }
+
+    .action-info {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    /* ── PROGRESS BAR ──────────────────────────────────────────────────────── */
+    .progress-bar-wrap {
+      background: var(--panel2);
+      border-radius: 100px;
+      height: 4px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold), var(--amber));
+      border-radius: 100px;
+      transition: width 400ms ease;
+    }
+
+    /* ── NOTICE BOX ────────────────────────────────────────────────────────── */
+    .notice {
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      font-size: 13px;
+      line-height: 1.6;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .notice-amber {
+      background: rgba(245,166,35,0.08);
+      border: 1px solid rgba(245,166,35,0.2);
+      color: #c89e44;
+    }
+
+    .notice-green {
+      background: rgba(46,204,122,0.08);
+      border: 1px solid rgba(46,204,122,0.2);
+      color: #2ecc7a;
+    }
+
+    .notice-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── MODAL ─────────────────────────────────────────────────────────────── */
+    #previewModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    #previewModal.open { display: flex; }
+
+    .modal-inner {
+      background: var(--panel);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      width: 680px;
+      max-width: 100%;
+      max-height: 92vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .modal-title {
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-actions { display: flex; gap: 8px; }
+
+    .modal-body {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #previewFrame {
+      width: 100%;
+      height: 100%;
+      border: none;
+      min-height: 500px;
+      background: #fff;
+    }
+
+    /* ── TOAST ─────────────────────────────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--panel2);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 2000;
+      transform: translateY(20px);
+      opacity: 0;
+      transition: all 250ms ease;
+      pointer-events: none;
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── SECTIONS (hidden/shown by JS) ─────────────────────────────────────── */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* ── SPACING ───────────────────────────────────────────────────────────── */
+    .mt-8  { margin-top: 8px; }
+    .mt-16 { margin-top: 16px; }
+    .mt-24 { margin-top: 24px; }
+    .mt-32 { margin-top: 32px; }
+    .gap-8 { display: flex; gap: 8px; align-items: center; }
+
+    /* ── POLL TIMER DISPLAY ─────────────────────────────────────────────────── */
+    #pollInfo {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* ── TEMPLATE CELL INDICATOR ────────────────────────────────────────────── */
+    .tpl-ok {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--green);
+    }
+
+    .tpl-missing {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--red);
+    }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- ── HEADER ──────────────────────────────────────────────────────────────── -->
+<header>
+  <div class="logo">
+    <div class="logo-mark"></div>
+    <span class="logo-text">EMAIL <span>LAYOUT</span> BUILDER</span>
+  </div>
+  <span class="header-badge">n8n · Supabase · Railway</span>
+</header>
+
+<div class="wrap">
+
+  <!-- ── STEP INDICATOR ────────────────────────────────────────────────────── -->
+  <div class="steps" id="stepIndicator">
+    <div class="step active" id="step1">
+      <div class="step-num">1</div>
+      <span>Upload CSV</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step" id="step2">
+      <div class="step-num">2</div>
+      <span>Preview & Queue</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step" id="step3">
+      <div class="step-num">3</div>
+      <span>Results</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════════
+       VIEW 1 — UPLOAD
+  ═══════════════════════════════════════════════════════════════════════════ -->
+  <div class="view active" id="viewUpload">
+    <div class="section-label">Step 01 / Upload</div>
+    <h2 class="section-title">Upload campaign CSV</h2>
+    <p class="section-sub">
+      CSV должен содержать колонки: <strong style="color:var(--gold)">text, image_URL, CTA_URL, template</strong>.
+      Первая колонка используется как описание строки (DAY 1, DAY 2…).
+    </p>
+
+    <div class="mt-24" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+      <svg class="upload-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 32v6a2 2 0 002 2h28a2 2 0 002-2v-6" stroke="#e9c346" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M24 8v24M16 16l8-8 8 8" stroke="#e9c346" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="upload-title">Перетащите CSV или кликните</div>
+      <div class="upload-sub mt-8">
+        Поддерживается формат экспорта кампаний.<br>
+        <strong>Максимум 100 строк за раз.</strong>
+      </div>
+    </div>
+    <input type="file" id="fileInput" accept=".csv,text/csv">
+
+    <div id="parseError" class="notice notice-amber mt-16" style="display:none">
+      <span class="notice-icon">⚠</span>
+      <span id="parseErrorText">Ошибка парсинга CSV.</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════════
+       VIEW 2 — PREVIEW
+  ═══════════════════════════════════════════════════════════════════════════ -->
+  <div class="view" id="viewPreview">
+    <div class="section-label">Step 02 / Preview</div>
+    <h2 class="section-title">Проверьте данные</h2>
+    <p class="section-sub">Убедитесь, что все строки распознаны корректно, затем отправьте в очередь.</p>
+
+    <div class="mt-24 panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          Строки для обработки
+          <span class="count-badge" id="previewCount">0 rows</span>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="resetToUpload()">← Загрузить другой файл</button>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Descr</th>
+              <th>Text (preview)</th>
+              <th>Image URL</th>
+              <th>CTA URL</th>
+              <th>Template</th>
+            </tr>
+          </thead>
+          <tbody id="previewTbody"></tbody>
+        </table>
+      </div>
+      <div class="action-row">
+        <span class="action-info" id="previewInfo">Готово к отправке</span>
+        <div class="gap-8">
+          <button class="btn btn-gold" id="queueBtn" onclick="queueRows()">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M7 2l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Отправить в очередь
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════════
+       VIEW 3 — PROCESSING + RESULTS
+  ═══════════════════════════════════════════════════════════════════════════ -->
+  <div class="view" id="viewResults">
+    <div class="section-label">Step 03 / Processing</div>
+    <h2 class="section-title">Обработка писем</h2>
+    <p class="section-sub">n8n собирает верстку. Страница обновляется автоматически каждые 8 секунд.</p>
+
+    <div id="n8nNotice" class="notice notice-amber mt-16" style="display:none">
+      <span class="notice-icon">⚠</span>
+      <span>N8N_WEBHOOK_URL не настроен. Запустите воркфлоу вручную в n8n — он подхватит новые строки автоматически.</span>
+    </div>
+
+    <div id="completedNotice" class="notice notice-green mt-16" style="display:none">
+      <span class="notice-icon">✓</span>
+      <span>Все письма обработаны успешно!</span>
+    </div>
+
+    <div class="mt-24 panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          Статус обработки
+          <span class="count-badge" id="progressBadge">0 / 0</span>
+        </div>
+        <span id="pollInfo">Проверяем…</span>
+      </div>
+
+      <div style="padding: 12px 20px; border-bottom: 1px solid var(--border);">
+        <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-bottom:6px;">
+          <span id="progressLabel">Готово: 0 из 0</span>
+          <span id="progressPct">0%</span>
+        </div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Descr</th>
+              <th>Preview text</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="resultsTbody"></tbody>
+        </table>
+      </div>
+
+      <div class="action-row">
+        <span class="action-info">Строки сохранены в Supabase (таблица letter_texts)</span>
+        <button class="btn btn-ghost btn-sm" onclick="resetToUpload()">← Новая загрузка</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<!-- ── PREVIEW MODAL ────────────────────────────────────────────────────────── -->
+<div id="previewModal">
+  <div class="modal-inner">
+    <div class="modal-header">
+      <div class="modal-title">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="2" width="12" height="10" rx="1.5" stroke="#e9c346" stroke-width="1.5"/><path d="M4 5h6M4 7.5h4" stroke="#e9c346" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <span id="modalTitle">Предпросмотр письма</span>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost btn-sm" id="copyHtmlBtn" onclick="copyCurrentHtml()">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="4" y="4" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.2"/><path d="M1 1h6v2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          Скопировать HTML
+        </button>
+        <button class="btn btn-gold btn-sm" id="downloadHtmlBtn" onclick="downloadCurrentHtml()">
+          ↓ Скачать .html
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="closeModal()">✕</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <iframe id="previewFrame" sandbox="allow-same-origin"></iframe>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOAST ─────────────────────────────────────────────────────────────────── -->
+<div id="toast">
+  <span id="toastIcon">✓</span>
+  <span id="toastText">Скопировано</span>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let parsedRows = [];      // from CSV parse
+let queuedIds = [];       // returned by /api/queue
+let statusData = {};      // { [id]: { descr, done, textSnip } }
+let htmlCache = {};       // { [id]: final_HTML string }
+let pollTimer = null;
+let currentPreviewId = null;
+let pollCount = 0;
+
+// ── View switching ─────────────────────────────────────────────────────────────
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view' + name).classList.add('active');
+  ['1','2','3'].forEach(n => {
+    const el = document.getElementById('step' + n);
+    el.classList.remove('active','done');
+  });
+  if (name === 'Upload') {
+    document.getElementById('step1').classList.add('active');
+  } else if (name === 'Preview') {
+    document.getElementById('step1').classList.add('done');
+    document.getElementById('step2').classList.add('active');
+  } else if (name === 'Results') {
+    document.getElementById('step1').classList.add('done');
+    document.getElementById('step2').classList.add('done');
+    document.getElementById('step3').classList.add('active');
+  }
+}
+
+function resetToUpload() {
+  if (pollTimer) clearInterval(pollTimer);
+  parsedRows = [];
+  queuedIds = [];
+  statusData = {};
+  htmlCache = {};
+  document.getElementById('fileInput').value = '';
+  showView('Upload');
+}
+
+// ── Upload / Drag & Drop ───────────────────────────────────────────────────────
+const uploadZone = document.getElementById('uploadZone');
+const fileInput  = document.getElementById('fileInput');
+
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', ()  => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFile(file);
+});
+
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) handleFile(fileInput.files[0]);
+});
+
+function handleFile(file) {
+  document.getElementById('parseError').style.display = 'none';
+  Papa.parse(file, {
+    header: false,
+    skipEmptyLines: true,
+    complete: function(results) {
+      processParsed(results.data, file.name);
+    },
+    error: function(err) {
+      showParseError('PapaParse error: ' + err.message);
+    }
+  });
+}
+
+function processParsed(data, filename) {
+  // Remove header row if present (first col empty or 'text' etc.)
+  let rows = data;
+  const first = rows[0];
+  if (first && (String(first[1]).toLowerCase() === 'text' || String(first[0]).toLowerCase() === '')) {
+    // Check it's not actual data
+    if (!first[4] || String(first[4]).length < 50) {
+      rows = rows.slice(1);
+    }
+  }
+
+  // Validate
+  if (rows.length === 0) {
+    showParseError('CSV не содержит строк с данными.');
+    return;
+  }
+
+  // Map columns: [0]=descr, [1]=text, [2]=image_URL, [3]=CTA_URL, [4]=template
+  parsedRows = rows.map((r, i) => ({
+    descr:     String(r[0] || '').trim() || `Row ${i+1}`,
+    text:      String(r[1] || '').trim(),
+    image_URL: String(r[2] || '').trim(),
+    CTA_URL:   String(r[3] || '').trim(),
+    template:  String(r[4] || '').trim(),
+  })).filter(r => r.text && r.template);
+
+  if (parsedRows.length === 0) {
+    showParseError('Не удалось найти строки с колонками text и template. Проверьте формат CSV.');
+    return;
+  }
+
+  renderPreview();
+  showView('Preview');
+}
+
+function showParseError(msg) {
+  document.getElementById('parseError').style.display = 'flex';
+  document.getElementById('parseErrorText').textContent = msg;
+}
+
+// ── Preview Table ──────────────────────────────────────────────────────────────
+function renderPreview() {
+  document.getElementById('previewCount').textContent = parsedRows.length + ' rows';
+  document.getElementById('previewInfo').textContent =
+    parsedRows.length + ' строк готово к отправке';
+
+  const tbody = document.getElementById('previewTbody');
+  tbody.innerHTML = parsedRows.map((r, i) => `
+    <tr>
+      <td class="cell-id">${i + 1}</td>
+      <td class="cell-descr">${esc(r.descr)}</td>
+      <td class="cell-text">${esc(r.text.slice(0, 140).replace(/\n/g,' '))}</td>
+      <td><span class="cell-url" title="${esc(r.image_URL)}">${shortUrl(r.image_URL)}</span></td>
+      <td><span class="cell-url" title="${esc(r.CTA_URL)}">${shortUrl(r.CTA_URL)}</span></td>
+      <td>${r.template.length > 100
+        ? '<span class="tpl-ok">✓ ' + r.template.length + ' chars</span>'
+        : '<span class="tpl-missing">⚠ Missing</span>'
+      }</td>
+    </tr>
+  `).join('');
+}
+
+// ── Queue Rows ─────────────────────────────────────────────────────────────────
+async function queueRows() {
+  const btn = document.getElementById('queueBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span>Отправка…</span>';
+
+  try {
+    const res = await fetch('/api/queue', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rows: parsedRows })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Server error');
+    }
+
+    const data = await res.json();
+    queuedIds = data.ids;
+
+    // Init statusData
+    queuedIds.forEach(id => { statusData[id] = { id, descr: '', done: false, textSnip: '' }; });
+
+    // Show n8n notice if not triggered
+    document.getElementById('n8nNotice').style.display = data.n8nTriggered ? 'none' : 'flex';
+    document.getElementById('completedNotice').style.display = 'none';
+
+    renderResultsTable();
+    showView('Results');
+    startPolling();
+
+  } catch (e) {
+    showToast('❌ ' + e.message, 4000);
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M7 2l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Отправить в очередь';
+  }
+}
+
+// ── Polling ────────────────────────────────────────────────────────────────────
+function startPolling() {
+  pollCount = 0;
+  pollOnce();
+  pollTimer = setInterval(() => {
+    if (allDone()) { clearInterval(pollTimer); return; }
+    pollOnce();
+  }, 8000);
+}
+
+async function pollOnce() {
+  pollCount++;
+  document.getElementById('pollInfo').textContent = `Опрос #${pollCount}…`;
+  try {
+    const idsParam = queuedIds.join(',');
+    const res = await fetch('/api/status?ids=' + idsParam);
+    if (!res.ok) return;
+    const rows = await res.json();
+    rows.forEach(r => { statusData[r.id] = r; });
+    updateResultsTable();
+    document.getElementById('pollInfo').textContent = `Обновлено ${new Date().toLocaleTimeString('ru')}`;
+
+    if (allDone()) {
+      document.getElementById('completedNotice').style.display = 'flex';
+      document.getElementById('pollInfo').textContent = '✓ Все готовы';
+      clearInterval(pollTimer);
+    }
+  } catch(e) {
+    document.getElementById('pollInfo').textContent = 'Ошибка опроса';
+  }
+}
+
+function allDone() {
+  return queuedIds.length > 0 && queuedIds.every(id => statusData[id]?.done);
+}
+
+// ── Results Table ──────────────────────────────────────────────────────────────
+function renderResultsTable() {
+  const tbody = document.getElementById('resultsTbody');
+  tbody.innerHTML = queuedIds.map(id => {
+    const r = statusData[id] || {};
+    return rowHtml(id, r);
+  }).join('');
+  updateProgress();
+}
+
+function updateResultsTable() {
+  queuedIds.forEach(id => {
+    const r = statusData[id] || {};
+    const tr = document.getElementById('tr-' + id);
+    if (tr) {
+      tr.outerHTML = rowHtml(id, r);
+    }
+  });
+  updateProgress();
+}
+
+function rowHtml(id, r) {
+  const done = r.done;
+  const badge = done
+    ? '<span class="badge badge-done"><span class="badge-dot"></span>Готово</span>'
+    : '<span class="badge badge-processing"><span class="badge-dot"></span>В очереди</span>';
+
+  const actions = done
+    ? `<div class="gap-8">
+        <button class="btn btn-ghost btn-sm" onclick="openPreview(${id})">👁 Preview</button>
+        <button class="btn btn-green btn-sm" onclick="downloadHtml(${id})">↓ HTML</button>
+        <button class="btn btn-ghost btn-sm" onclick="copyHtml(${id})">⎘ Copy</button>
+       </div>`
+    : '<span style="font-size:12px;color:var(--muted)">ожидание n8n…</span>';
+
+  return `<tr id="tr-${id}">
+    <td class="cell-id">${id}</td>
+    <td class="cell-descr">${esc(r.descr || '…')}</td>
+    <td class="cell-text">${esc((r.textSnip || '').slice(0,100))}</td>
+    <td>${badge}</td>
+    <td>${actions}</td>
+  </tr>`;
+}
+
+function updateProgress() {
+  const total = queuedIds.length;
+  const done  = queuedIds.filter(id => statusData[id]?.done).length;
+  const pct   = total ? Math.round((done/total)*100) : 0;
+  document.getElementById('progressBadge').textContent = `${done} / ${total}`;
+  document.getElementById('progressLabel').textContent = `Готово: ${done} из ${total}`;
+  document.getElementById('progressPct').textContent = pct + '%';
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+// ── Fetch & Cache HTML ─────────────────────────────────────────────────────────
+async function fetchHtml(id) {
+  if (htmlCache[id]) return htmlCache[id];
+  const res = await fetch('/api/result/' + id);
+  if (!res.ok) throw new Error('Ошибка загрузки результата');
+  const data = await res.json();
+  if (!data.final_HTML) throw new Error('HTML ещё не готов');
+  htmlCache[id] = data.final_HTML;
+  return htmlCache[id];
+}
+
+// ── Preview Modal ──────────────────────────────────────────────────────────────
+async function openPreview(id) {
+  currentPreviewId = id;
+  const r = statusData[id];
+  document.getElementById('modalTitle').textContent = `Предпросмотр — ${r?.descr || 'ID ' + id}`;
+  document.getElementById('previewModal').classList.add('open');
+  document.getElementById('previewFrame').srcdoc = '<div style="font-family:sans-serif;padding:40px;color:#666">Загрузка…</div>';
+  try {
+    const html = await fetchHtml(id);
+    document.getElementById('previewFrame').srcdoc = html;
+  } catch(e) {
+    document.getElementById('previewFrame').srcdoc = `<div style="font-family:sans-serif;padding:40px;color:red">${e.message}</div>`;
+  }
+}
+
+function closeModal() {
+  document.getElementById('previewModal').classList.remove('open');
+  currentPreviewId = null;
+}
+
+document.getElementById('previewModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('previewModal')) closeModal();
+});
+
+// ── Download / Copy ────────────────────────────────────────────────────────────
+async function downloadHtml(id) {
+  try {
+    const html = await fetchHtml(id);
+    const r = statusData[id];
+    const slug = (r?.descr || 'email-' + id).toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    downloadBlob(html, slug + '.html');
+  } catch(e) { showToast('❌ ' + e.message); }
+}
+
+async function copyHtml(id) {
+  try {
+    const html = await fetchHtml(id);
+    await navigator.clipboard.writeText(html);
+    showToast('✓ HTML скопирован в буфер');
+  } catch(e) { showToast('❌ Clipboard недоступен'); }
+}
+
+async function copyCurrentHtml() { if (currentPreviewId) await copyHtml(currentPreviewId); }
+async function downloadCurrentHtml() { if (currentPreviewId) await downloadHtml(currentPreviewId); }
+
+function downloadBlob(text, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], {type:'text/html'}));
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, duration = 2500) {
+  const el = document.getElementById('toast');
+  document.getElementById('toastText').textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), duration);
+}
+
+// ── Utils ──────────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function shortUrl(url) {
+  if (!url) return '<span style="color:var(--red)">—</span>';
+  try {
+    const u = new URL(url);
+    return u.hostname + (u.pathname.length > 20 ? u.pathname.slice(0,20)+'…' : u.pathname);
+  } catch { return url.slice(0, 35) + (url.length > 35 ? '…' : ''); }
+}
+</script>
+</body>
+</html>
