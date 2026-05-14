@@ -1,12 +1,12 @@
 const express = require('express');
 const path = require('path');
+const { processAll } = require('./lib/processor');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL;
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
   console.error('ERROR: SUPABASE_URL and SUPABASE_SERVICE_KEY env vars are required');
@@ -70,23 +70,13 @@ app.post('/api/queue', async (req, res) => {
     const inserted = await insertRows(payload);
     const ids = inserted.map((r) => r.id);
 
-    // Fire-and-forget n8n webhook if configured
-    let n8nTriggered = false;
-    if (N8N_WEBHOOK_URL) {
-      try {
-        await fetch(N8N_WEBHOOK_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ source: 'layout-builder', count: ids.length }),
-        });
-        n8nTriggered = true;
-      } catch (e) {
-        console.error('n8n webhook failed:', e.message);
-      }
-    }
+    // Fire-and-forget processing in background
+    processAll(SUPABASE_URL, SUPABASE_SERVICE_KEY).catch((e) =>
+      console.error('processAll error:', e.message)
+    );
 
-    console.log(`Queued ${ids.length} rows: [${ids.join(', ')}] — n8n triggered: ${n8nTriggered}`);
-    res.json({ ids, n8nTriggered });
+    console.log(`Queued ${ids.length} rows: [${ids.join(', ')}] — processing started`);
+    res.json({ ids, processing: true });
   } catch (e) {
     console.error('/api/queue error:', e.message);
     res.status(500).json({ error: e.message });
@@ -138,13 +128,22 @@ app.get('/api/result/:id', async (req, res) => {
   }
 });
 
+// POST /api/process
+// Manually trigger processing of all pending rows (final_HTML = null)
+app.post('/api/process', async (_req, res) => {
+  try {
+    const result = await processAll(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    res.json(result);
+  } catch (e) {
+    console.error('/api/process error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Health check for Railway
 app.get('/healthz', (_req, res) => res.json({ ok: true }));
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`✅ Email Layout Builder running on port ${PORT}`);
-  if (!N8N_WEBHOOK_URL) {
-    console.warn('⚠️  N8N_WEBHOOK_URL not set — n8n must be triggered manually');
-  }
 });
